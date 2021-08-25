@@ -25,9 +25,9 @@ void compute(struct In *input, struct Out *output) {
     preimage_t preimages[NUM_SESSIONS];              /* prover will fill it with his private preimage */
     uint8_t prover_hashes[NUM_SESSIONS][SHA256_BLOCK_SIZE];         /* this is the hash of private preimage */
 
-    uint32_t tmp_array[1] = {0};
+    uint32_t tmp_array[2] = {1, NUM_SESSIONS}; // length, number of sessions
     uint32_t *input_params[1] = { tmp_array };
-    uint32_t lens[1] = { 1 };
+    uint32_t lens[1] = { 2 };
     exo_compute(input_params, lens, preimages, 2);     /* fill preimage variable with prover's private preimage */
     
     /* compute sha256 for all preimages */

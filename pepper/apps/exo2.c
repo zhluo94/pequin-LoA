@@ -21,8 +21,7 @@ int main(int argc, char **argv) {
     char *tok, *stok;
     char *saveptr1, *saveptr2, *str1, *str2;
 
-    int input_length = 1;
-    int output_length = 0;
+    int input_length, output_length;
     int *dst;
     int *input;
     uint8_t **output;
@@ -74,6 +73,7 @@ int main(int argc, char **argv) {
     }
 
     free(inString);
+    //fprintf(stderr, "number of sessions: %u\n", input[0]);
     output_length = input[0];
     output = (uint8_t **) calloc(output_length, sizeof(uint8_t*));
     for(i = 0; i < output_length; i ++) {
@@ -82,14 +82,14 @@ int main(int argc, char **argv) {
 
     compute(input, output);
 
-    fprintf(stderr, "\n");
+    //fprintf(stderr, "\n");
     for (i=0; i < output_length; i++) {
         for (j = 0; j < PREIMAGE_LEN; j++) {
             printf("%u\n", output[i][j]);
-            fprintf(stderr, "%u ", output[i][j]);
+            //fprintf(stderr, "%u ", output[i][j]);
         }
     }
-    fprintf(stderr, "\n");
+    //fprintf(stderr, "\n");
 
     free(input);
     for(i = 0; i < output_length; i ++)
@@ -103,14 +103,15 @@ int main(int argc, char **argv) {
 
 void compute(int *input, uint8_t **output) {
     int num_sessions = input[0];
-    assert(num_sessions == 1);
     int i, j;
-    uint8_t preimage[PREIMAGE_LEN] = {97, 98, 99, 100};
+    uint32_t pre_sum = 2387; // random
+    //uint8_t preimage[PREIMAGE_LEN] = {97, 98, 99, 100};
     //srand(100); // use 100 as the seed 
     for (i = 0; i < num_sessions; i++) {
-        //sha256_helper(preimage, output[i]);
         for (j = 0; j < PREIMAGE_LEN; j++) {
-            output[i][j] = preimage[j];
+            //output[i][j] = preimage[j];
+            output[i][j] = (pre_sum >> (8 * j)) & 255; 
         }
-    }
-}
+        pre_sum++;  
+     }
+} 

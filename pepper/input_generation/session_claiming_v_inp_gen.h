@@ -1,4 +1,5 @@
-#define TOTAL_NUM_SESSIONS 100
+#define TOTAL_NUM_SESSIONS 1000
+#define NUM_SESSIONS 32
 #define SHA256_BLOCK_SIZE 32            /* SHA256 outputs a 32 uint8_t digest */
 
 #define PREIMAGE_LEN 4
@@ -17,12 +18,13 @@ typedef struct {
     uint32_t datalen;
     unsigned long long bitlen;
     uint32_t state[8];
-} SHA256_CTX;
+} SHA256_CTX_M; 
 
-void sha256_helper(uint8_t *preimage, uint8_t *hash)；
-void sha256_init(SHA256_CTX *ctx);
-void sha256_update(SHA256_CTX *ctx, uint8_t *data, uint32_t len);
-void sha256_final(SHA256_CTX *ctx, uint8_t *hash);
+void sha256_helper(uint8_t *preimage, uint8_t *hash);
+void sha256_init_m(SHA256_CTX_M *ctx);
+void sha256_update_m(SHA256_CTX_M *ctx, uint8_t *data, uint32_t len);
+void sha256_final_m(SHA256_CTX_M *ctx, uint8_t *hash);
+bool contain_m(int session_idxes[NUM_SESSIONS], int idx);
 
 static const uint32_t k[64] = {
     0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
@@ -35,22 +37,35 @@ static const uint32_t k[64] = {
     0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
 };
 
-uint8_t sha256_hash[32] = { 136, 212, 38, 111, 212, 230, 51, 141, 19, 184, 69, 252, 242, 137, 87, 157, 32, 156, 137, 120, 35, 185, 33, 125, 163, 225, 97, 147, 111, 3, 21, 137 };
+//uint8_t sha256_hash[32] = { 136, 212, 38, 111, 212, 230, 51, 141, 19, 184, 69, 252, 242, 137, 87, 157, 32, 156, 137, 120, 35, 185, 33, 125, 163, 225, 97, 147, 111, 3, 21, 137 };
 // sha256 hash of 'a', 'b', 'c', 'd'
 
 void session_claiming_input_gen (mpq_t * input_q, int num_inputs, char *argv[]) {
-    int session_idx = rand() % TOTAL_NUM_SESSIONS; // the index for users
-    int usage, rep, sid, hash, input_idx;
+    int session_idxes[NUM_SESSIONS];
+    // The Knuth algorithm: randomly select n out of m (in order)
+    int in = 0, im = 0;
+    int N = TOTAL_NUM_SESSIONS, M = NUM_SESSIONS;
+    for (; in < N && im < M; ++in) {
+	int rn = N - in;
+	int rm = M - im;
+	if (rand() % rn < rm)    /* Take it */
+	    session_idxes[im++] = in; 
+    }
+   
+    int usage, rep, sid, input_idx;
+    uint32_t pre_sum = 2387; // random
+    uint8_t preimage[PREIMAGE_LEN];
     input_idx = 0;
+    
     // session usages
     for (int i = 0; i < TOTAL_NUM_SESSIONS; i++) {
-    	usage = (i == session_idx)? 12345 : rand();
+    	usage = contain_m(session_idxes,i)? 12345 : rand();
         mpq_set_ui(input_q[input_idx], usage, 1);
         input_idx++;
     }
     // session rep updates
     for (int i = 0; i < TOTAL_NUM_SESSIONS; i++) {
-    	rep = (i == session_idx)? 54321 : rand();
+    	rep = contain_m(session_idxes, i)? 54321 : rand();
         mpq_set_ui(input_q[input_idx], rep, 1);
         input_idx++;
     }
@@ -61,11 +76,16 @@ void session_claiming_input_gen (mpq_t * input_q, int num_inputs, char *argv[]) 
         input_idx++;
     }
     // session hashes
-    uint8_t preimage[PREIMAGE_LEN] = {97, 98, 99, 100};
+    // uint8_t preimage[PREIMAGE_LEN] = {97, 98, 99, 100};
     uint8_t hash[SHA256_BLOCK_SIZE];
     for (int i = 0; i < TOTAL_NUM_SESSIONS; i++) {
-    	bool is_right_idx = (i == session_idx);
+    	bool is_right_idx = contain_m(session_idxes, i);
         if(is_right_idx) {
+            for (int j=0; j < PREIMAGE_LEN; j++) {
+		preimage[j] = (pre_sum >> (8 * j)) & 255;
+	    } 
+            pre_sum++;
+
             sha256_helper(preimage, hash);
             for (int j=0; j < SHA256_BLOCK_SIZE; j++) {
                 mpq_set_ui(input_q[input_idx], hash[j], 1);
@@ -89,18 +109,27 @@ void session_claiming_input_gen (mpq_t * input_q, int num_inputs, char *argv[]) 
 
 }
 
+/* whether idx is contained in session_idxes */
+bool contain_m(int session_idxes[NUM_SESSIONS], int idx) {
+    for(int i = 0; i < NUM_SESSIONS; i++) {
+	if(session_idxes[i] = idx)
+	    return true;
+    }
+    return false;
+}
+
 /* helper function to compute SHA256 */
 void sha256_helper(uint8_t *preimage, uint8_t *hash) {
-    SHA256_CTX ctx;
-    sha256_init(&ctx);
-    sha256_update(&ctx, preimage, PREIMAGE_LEN);   
-    sha256_final(&ctx, hash);   
+    SHA256_CTX_M ctx;
+    sha256_init_m(&ctx);
+    sha256_update_m(&ctx, preimage, PREIMAGE_LEN);   
+    sha256_final_m(&ctx, hash);   
 }
 
 /**
  * SHA256 code from https://github.com/cnasikas/data-processing/tree/master/zkp/app/queries/sha256
 **/
-void sha256_transform(SHA256_CTX *ctx, uint8_t *data) {
+void sha256_transform_m(SHA256_CTX_M *ctx, uint8_t *data) {
     uint32_t a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
 
     for (i = 0, j = 0; i < 16; ++i, j += 4) {
@@ -142,7 +171,7 @@ void sha256_transform(SHA256_CTX *ctx, uint8_t *data) {
     ctx->state[7] += h;
 }
 
-void sha256_init(SHA256_CTX *ctx) {
+void sha256_init_m(SHA256_CTX_M *ctx) {
     ctx->datalen = 0;
     ctx->bitlen = 0;
     ctx->state[0] = 0x6a09e667;
@@ -155,20 +184,20 @@ void sha256_init(SHA256_CTX *ctx) {
     ctx->state[7] = 0x5be0cd19;
 }
 
-void sha256_update(SHA256_CTX *ctx, uint8_t *data, uint32_t len) {
+void sha256_update_m(SHA256_CTX_M *ctx, uint8_t *data, uint32_t len) {
     uint32_t i;
     for (i = 0; i < len; ++i) {
         ctx->data[ctx->datalen] = data[i];
         ctx->datalen++;
         if (ctx->datalen == 64) {
-            sha256_transform(ctx, ctx->data);
+            sha256_transform_m(ctx, ctx->data);
             ctx->bitlen += 512;
             ctx->datalen = 0;
         }
     }
 }
 
-void sha256_final(SHA256_CTX *ctx, uint8_t *hash) {
+void sha256_final_m(SHA256_CTX_M *ctx, uint8_t *hash) {
     uint32_t i;
     i = ctx->datalen;
 
@@ -183,7 +212,7 @@ void sha256_final(SHA256_CTX *ctx, uint8_t *hash) {
         while (i < 64) {
             ctx->data[i++] = 0x00;
         }
-        sha256_transform(ctx, ctx->data);
+        sha256_transform_m(ctx, ctx->data);
         memset(ctx->data, 0, 56);
     }
 
@@ -197,7 +226,7 @@ void sha256_final(SHA256_CTX *ctx, uint8_t *hash) {
     ctx->data[58] = ctx->bitlen >> 40;
     ctx->data[57] = ctx->bitlen >> 48;
     ctx->data[56] = ctx->bitlen >> 56;
-    sha256_transform(ctx, ctx->data);
+    sha256_transform_m(ctx, ctx->data);
 
     // Since this implementation uses little endian byte ordering and SHA uses big endian,
     // reverse all the bytes when copying the final state to the output hash.
