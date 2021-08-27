@@ -1,5 +1,5 @@
-#define TOTAL_NUM_SESSIONS 1000
-#define NUM_SESSIONS 32
+#define TOTAL_NUM_SESSIONS 10000 
+#define NUM_SESSIONS 101
 #define SHA256_BLOCK_SIZE 32            /* SHA256 outputs a 32 uint8_t digest */
 
 #define PREIMAGE_LEN 4
@@ -40,7 +40,7 @@ static const uint32_t k[64] = {
 //uint8_t sha256_hash[32] = { 136, 212, 38, 111, 212, 230, 51, 141, 19, 184, 69, 252, 242, 137, 87, 157, 32, 156, 137, 120, 35, 185, 33, 125, 163, 225, 97, 147, 111, 3, 21, 137 };
 // sha256 hash of 'a', 'b', 'c', 'd'
 
-void session_claiming_input_gen (mpq_t * input_q, int num_inputs, char *argv[]) {
+void session_claiming_binary_input_gen (mpq_t * input_q, int num_inputs, char *argv[]) {
     int session_idxes[NUM_SESSIONS];
     // The Knuth algorithm: randomly select n out of m (in order)
     srand(1001);
@@ -113,7 +113,7 @@ void session_claiming_input_gen (mpq_t * input_q, int num_inputs, char *argv[]) 
 /* whether idx is contained in session_idxes */
 bool contain_m(int session_idxes[NUM_SESSIONS], int idx) {
     for(int i = 0; i < NUM_SESSIONS; i++) {
-	if(session_idxes[i] = idx)
+	if(session_idxes[i] == idx)
 	    return true;
     }
     return false;

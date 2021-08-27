@@ -59,13 +59,13 @@ void session_claiming_input_gen (mpq_t * input_q, int num_inputs, char *argv[]) 
     
     // session usages
     for (int i = 0; i < TOTAL_NUM_SESSIONS; i++) {
-    	usage = contain_m(session_idxes,i)? 12345 : rand();
+    	usage = (contain_m(session_idxes,i))? 12345 : rand();
         mpq_set_ui(input_q[input_idx], usage, 1);
         input_idx++;
     }
     // session rep updates
     for (int i = 0; i < TOTAL_NUM_SESSIONS; i++) {
-    	rep = contain_m(session_idxes, i)? 54321 : rand();
+    	rep = (contain_m(session_idxes, i))? 54321 : rand();
         mpq_set_ui(input_q[input_idx], rep, 1);
         input_idx++;
     }
@@ -112,7 +112,7 @@ void session_claiming_input_gen (mpq_t * input_q, int num_inputs, char *argv[]) 
 /* whether idx is contained in session_idxes */
 bool contain_m(int session_idxes[NUM_SESSIONS], int idx) {
     for(int i = 0; i < NUM_SESSIONS; i++) {
-	if(session_idxes[i] = idx)
+	if(session_idxes[i] == idx)
 	    return true;
     }
     return false;

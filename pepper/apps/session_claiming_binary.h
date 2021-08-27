@@ -2,8 +2,8 @@
 
 #define SHA256_BLOCK_SIZE 32            /* SHA256 outputs a 32 uint8_t digest */
 #define PREIMAGE_LEN 4
-#define TOTAL_NUM_SESSIONS 1000			/* total number of sessions */
-#define NUM_SESSIONS 32 				/* number of sessions */
+#define TOTAL_NUM_SESSIONS 10000			/* total number of sessions */
+#define NUM_SESSIONS 101				/* number of sessions */
 #define LOG_TOTAL_NUM_SESSIONS 10       /* log2 of the total number of sessiosn */
 
 #define ROTLEFT(a,b) (((a) << (b)) | ((a) >> (32-(b))))

@@ -1,4 +1,4 @@
-#include <session_claiming.h>
+#include <session_claiming_binary.h>
 
 /**
  * Algorithm Description:
@@ -40,9 +40,9 @@ void compute(struct In *input, struct Out *output) {
     	prover_sids[i] = preimages[i].sid; 
     }
 
-    uint32_t session_usage, session_rep_update, session_sid;
-    uint8_t *session_hash;
-    int low, high, mid;
+    uint32_t session_usage, session_rep_update, session_sid, tmp_sid;
+    uint8_t  session_hash[SHA256_BLOCK_SIZE];
+    uint32_t low, high, mid;
 
     output->total_usage = 0;
     output->total_rep_update = 0;
@@ -53,27 +53,33 @@ void compute(struct In *input, struct Out *output) {
     	low = 0;
     	high = TOTAL_NUM_SESSIONS - 1;
     	for(j=0; j < LOG_TOTAL_NUM_SESSIONS; j++) {
-    		mid = (low + high)/2;
-    		if(input->sids[mid] > session_sid) {
-    			high = mid - 1;
-    		}  
-    		else if(input->sids[mid] < session_sid) {
-    			low = mid + 1;
-    		}
+    		mid = (low + high) >> 1;
+                tmp_sid = input->sids[mid];
+                if(tmp_sid == session_sid) {
+ 		    high = mid;
+		    low = mid;
+                } else { 
+    		    if(tmp_sid > session_sid) {
+    			high = mid;
+    		    }  
+    		    else {
+    			low = mid;
+    		    }
+		}
     	}
-    	session_hash = input->hashes[mid];
-    	session_usage = input->usages[mid];
-    	session_rep_update = input->rep_updates[mid];
-    	
+        session_hash = input->hashes[mid];   
+    	session_usage = input->usages[mid]; 
+    	session_rep_update = input->rep_updates[mid]; 
+
     	/* check the found session's hash */ 
     	for (k = 0; k < SHA256_BLOCK_SIZE; k++) {
     		if(prover_hashes[i][k] != session_hash[k]) {
-            	session_usage = 0;
-            	session_rep_update = 0;
-    		} 
+            		session_usage = 0;
+            		session_rep_update = 0;
+    		}	 
     	}
     	output->total_usage += session_usage;
-        output->total_rep_update += session_rep_update;
+        output->total_rep_update += session_rep_update;  
     }
 }
 
